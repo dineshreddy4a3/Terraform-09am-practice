@@ -1,4 +1,4 @@
-ami-id        = "ami-08a6efd148b1f7504"
+ami-id        = "ami-0c1fe732b5494dc14"
 instance-type = "t2.micro"
 
 
