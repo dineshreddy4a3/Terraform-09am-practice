@@ -31,6 +31,53 @@ resource "aws_internet_gateway" "dev_igw" {
   }
 }
 
+
+# Elastic IP for NAT Gateway
+resource "aws_eip" "dev_nat_eip" {
+  domain = "vpc"
+
+  tags = {
+    Name = "dev-nat-eip"
+  }
+}
+
+
+# Creation NAt Gateway and attach to vpc
+# NAT Gateway for private subnet
+resource "aws_nat_gateway" "dev_natgw_private" {
+  allocation_id = aws_eip.dev_nat_eip.id
+  subnet_id     = aws_subnet.dev_subnet1.id
+
+  tags = {
+    Name = "dev-natgw-private"
+  }
+
+  depends_on = [aws_internet_gateway.dev_igw]
+}
+
+# Private Route Table
+resource "aws_route_table" "dev_private_rt" {
+  vpc_id = aws_vpc.dev_vpc.id
+
+  tags = {
+    Name = "dev-private-rt"
+  }
+}
+
+# Route for private subnet via NAT Gateway
+resource "aws_route" "private_nat_route" {
+  route_table_id         = aws_route_table.dev_private_rt.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.dev_natgw_private.id
+}
+
+# Associate private subnet with private route table
+resource "aws_route_table_association" "dev_private_assoc" {
+  subnet_id      = aws_subnet.dev_subnet2.id
+  route_table_id = aws_route_table.dev_private_rt.id
+}
+
+
 # Creation of route table and edit routes 
 resource "aws_route_table" "dev_rt" {
   vpc_id = aws_vpc.dev_vpc.id
@@ -92,7 +139,7 @@ resource "aws_security_group" "dev_sg" {
 
 # Creation of server
 resource "aws_instance" "dev_server" {
-  ami                    = "ami-08a6efd148b1f7504"
+  ami                    = "ami-0c1fe732b5494dc14"
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.dev_subnet1.id
   vpc_security_group_ids = [aws_security_group.dev_sg.id]
